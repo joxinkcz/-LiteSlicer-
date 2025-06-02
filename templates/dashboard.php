@@ -37,7 +37,7 @@ $prints = $db->query(
      LIMIT 5",
     [$user['id']]
 );
-);
+
 ?>
 <!DOCTYPE html>
 <html lang="ru">

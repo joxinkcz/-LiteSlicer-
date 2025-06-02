@@ -1,6 +1,6 @@
 <?php
 
-define('CURA_ENGINE_PATH', __DIR__.'/../assets/cura-engine/CuraEngine.exe');
+define('PRUSA_SLICER_PATH', __DIR__.'/../assets/cura-engine/CuraEngine.exe');
 define('PRINTER_PROFILE_PATH', __DIR__.'/../resources/definitions/Anycubic_Kobra_3_Combo_0.4.json');
 // Настройки базы данных
 define('DB_HOST', 'localhost:3306');

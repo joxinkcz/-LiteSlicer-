@@ -2,21 +2,17 @@
 require_once __DIR__.'/includes/Config.php';
 require_once __DIR__.'/includes/Auth.php';
 require_once __DIR__.'/includes/FileUploader.php';
-
 $auth = new Auth();
 if (!$auth->isLoggedIn()) {
     header("Location: login.php");
     exit;
 }
-
 $modelFile = $_GET['model'] ?? '';
 $modelPath = MODEL_UPLOAD_DIR . $modelFile;
-
 if (!file_exists($modelPath)) {
     header("Location: dashboard.php");
     exit;
 }
-
 $modelInfo = FileUploader::getModelInfo($modelFile);
 ?>
 <!DOCTYPE html>
@@ -36,13 +32,11 @@ $modelInfo = FileUploader::getModelInfo($modelFile);
             --text-light: #f5f5f5;
             --card-bg: rgba(26, 35, 126, 0.7);
         }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             font-family: 'Roboto', sans-serif;
             background-color: #0c0c1a;
@@ -50,7 +44,6 @@ $modelInfo = FileUploader::getModelInfo($modelFile);
             height: 100vh;
             overflow: hidden;
         }
-
         #matrix-effect {
             position: fixed;
             top: 0;
@@ -60,7 +53,6 @@ $modelInfo = FileUploader::getModelInfo($modelFile);
             width: 100%;
             height: 100%;
         }
-
         .app-header {
             display: flex;
             align-items: center;
@@ -69,17 +61,14 @@ $modelInfo = FileUploader::getModelInfo($modelFile);
             border-bottom: 1px solid var(--primary-blue);
             backdrop-filter: blur(5px);
         }
-
         .logo {
             display: flex;
             align-items: center;
         }
-
         .logo img {
             height: 30px;
             margin-right: 10px;
         }
-
         .logo-text {
             font-size: 1.2rem;
             font-weight: 700;
@@ -87,13 +76,11 @@ $modelInfo = FileUploader::getModelInfo($modelFile);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
         .user-menu {
             margin-left: auto;
             display: flex;
             align-items: center;
         }
-
         .user-avatar {
             width: 32px;
             height: 32px;
@@ -106,13 +93,11 @@ $modelInfo = FileUploader::getModelInfo($modelFile);
             font-weight: 700;
             margin-right: 10px;
         }
-
         .main-container {
             display: grid;
             grid-template-columns: 300px 1fr;
             height: calc(100vh - 62px);
         }
-
         .sidebar {
             background: var(--card-bg);
             border-right: 1px solid var(--primary-blue);
@@ -120,11 +105,9 @@ $modelInfo = FileUploader::getModelInfo($modelFile);
             overflow-y: auto;
             backdrop-filter: blur(5px);
         }
-
         .section {
             margin-bottom: 30px;
         }
-
         .section-title {
             color: var(--primary-blue);
             font-size: 1.1rem;
@@ -132,39 +115,32 @@ $modelInfo = FileUploader::getModelInfo($modelFile);
             padding-bottom: 8px;
             border-bottom: 1px solid rgba(100, 181, 246, 0.3);
         }
-
         .model-info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
         }
-
         .info-item {
             margin-bottom: 12px;
         }
-
         .info-label {
             color: var(--accent-blue);
             font-size: 0.8rem;
             margin-bottom: 4px;
         }
-
         .info-value {
             font-size: 0.9rem;
             word-break: break-all;
         }
-
         .form-group {
             margin-bottom: 15px;
         }
-
         .form-label {
             display: block;
             color: var(--accent-blue);
             font-size: 0.9rem;
             margin-bottom: 6px;
         }
-
         .form-control {
             width: 100%;
             padding: 8px 12px;
@@ -501,9 +477,8 @@ $modelInfo = FileUploader::getModelInfo($modelFile);
         </div>
         <div class="scale-controls">
 
-        </div> <button onclick="scaleModel(1.1)">Увеличить (+)</button>
-        <button onclick="scaleModel(0.9)">Уменьшить (-)</button>
-        <button onclick="resetModelScale()">Сбросить масштаб</button>
+        </div>
+
         <div class="section">
             <h3 class="section-title">G-CODE OUTPUT</h3>
             <div class="gcode-terminal" id="gcode-terminal">
