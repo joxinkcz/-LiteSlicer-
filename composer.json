@@ -1,0 +1,14 @@
+{
+  "name": "vendor_name/3d-printer-slicer",
+  "description": "description",
+  "minimum-stability": "stable",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "захар",
+      "email": "email@example.com"
+    }
+  ],
+  "require": {
+  }
+}

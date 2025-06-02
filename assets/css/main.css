@@ -1,0 +1,149 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+.btn-success {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.btn-success:hover {
+    background-color: #157347;
+    border-color: #146c43;
+}
+
+#viewer-container {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    background-color: #f0f0f0;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#viewer {
+    width: 100%;
+    height: 100%;
+}
+
+.model-info {
+    background-color: #e9ecef;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 5px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: all 0.3s;
+}
+
+.upload-area:hover {
+    border-color: #adb5bd;
+    background-color: #f8f9fa;
+}
+
+.upload-icon {
+    font-size: 3rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+#gcode-preview {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.print-info p {
+    margin-bottom: 0.5rem;
+}
+
+.print-info strong {
+    color: #495057;
+}
+
+@media (max-width: 768px) {
+    .auth-container {
+        margin-top: 2rem;
+        padding: 1.5rem;
+    }
+
+    #viewer-container {
+        height: 400px;
+    }
+    #viewer-container {
+        position: relative;
+        width: 100%;
+        height: 600px;
+        background: #111;
+        border: 1px solid #0abdc6;
+        overflow: hidden;
+    }
+
+    #viewer {
+        width: 100%;
+        height: 100%;
+    }
+
+    .control-panel {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        z-index: 100;
+        display: flex;
+        gap: 10px;
+    }
+
+    .control-btn {
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid #0abdc6;
+        color: #0abdc6;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 20px;
+    }
+
+    .control-btn:hover {
+        background: #0abdc6;
+        color: #000;
+    }
+}
