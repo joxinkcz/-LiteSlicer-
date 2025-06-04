@@ -1,19 +1,99 @@
 <?php
-require_once __DIR__.'/includes/Config.php';
-require_once __DIR__.'/includes/Auth.php';
-require_once __DIR__.'/includes/FileUploader.php';
+require_once 'D:/DIPLOMKA/3d-printer-slicer/includes/Config.php';
+require_once 'D:/DIPLOMKA/3d-printer-slicer/includes/Auth.php';
+require_once 'D:/DIPLOMKA/3d-printer-slicer/includes/FileUploader.php';
+
+header('Content-Type: application/json');
+
 $auth = new Auth();
 if (!$auth->isLoggedIn()) {
-    header("Location: login.php");
-    exit;
+    die(json_encode(['success' => false, 'error' => 'Not authorized']));
 }
-$modelFile = $_GET['model'] ?? '';
-$modelPath = MODEL_UPLOAD_DIR . $modelFile;
-if (!file_exists($modelPath)) {
-    header("Location: dashboard.php");
-    exit;
+
+try {
+    // Валидация входных данных
+    $modelFile = $_POST['model'] ?? '';
+    if (empty($modelFile)) {
+        throw new Exception("Не указан файл модели");
+    }
+
+    $modelPath = MODEL_UPLOAD_DIR . $modelFile;
+    if (!file_exists($modelPath)) {
+        throw new Exception("Файл модели не найден");
+    }
+
+    // Получение параметров слайсинга
+    $settings = [
+        'material' => $_POST['material'] ?? 'PLA',
+        'nozzle_size' => (float)($_POST['nozzle_size'] ?? 0.4),
+        'layer_height' => (float)($_POST['layer_height'] ?? 0.2),
+        'infill_density' => (int)($_POST['infill_density'] ?? 20),
+        'support' => isset($_POST['generate_support']) ? '1' : '0',
+        'brim' => isset($_POST['add_brim']) ? '1' : '0'
+    ];
+
+    // Генерация имени выходного файла
+    $outputFile = 'slice_'.time().'_'.bin2hex(random_bytes(4)).'.gcode';
+    $gcodePath = GCODE_UPLOAD_DIR . $outputFile;
+
+    // Формирование команды для PrusaSlicer
+    $command = sprintf(
+        '"%s" --slice --output "%s" '.
+        '--load "%s" '.
+        '--layer-height %f '.
+        '--nozzle-diameter %f '.
+        '--fill-density %d '.
+        '--support-material %s '.
+        '--brim %s '.
+        '"%s"',
+        PRUSA_SLICER_PATH,
+        escapeshellarg($gcodePath),
+        escapeshellarg(PRINTER_PROFILE_PATH),
+        $settings['layer_height'],
+        $settings['nozzle_size'],
+        $settings['infill_density'],
+        $settings['support'],
+        $settings['brim'],
+        escapeshellarg($modelPath)
+    );
+
+    // Выполнение команды
+    exec($command, $output, $returnCode);
+
+    if ($returnCode !== 0 || !file_exists($gcodePath)) {
+        throw new Exception("Ошибка слайсинга: ".implode("\n", $output));
+    }
+
+    // Чтение сгенерированного G-code
+    $gcodeContent = file_get_contents($gcodePath);
+
+    // Парсинг времени печати и расхода филамента из G-code
+    $printTime = 'N/A';
+    $filamentUsed = 'N/A';
+
+    if (preg_match('/; estimated printing time \(normal mode\) = (.+)/', $gcodeContent, $matches)) {
+        $printTime = $matches[1];
+    }
+
+    if (preg_match('/; filament used \[mm\] = (.+)/', $gcodeContent, $matches)) {
+        $filamentUsed = round($matches[1] / 1000, 2) . ' m';
+    }
+
+    // Возвращаем результат
+    echo json_encode([
+        'success' => true,
+        'filename' => $outputFile,
+        'gcode' => $gcodeContent,
+        'print_time' => $printTime,
+        'filament_used' => $filamentUsed
+    ]);
+} catch (Exception $e) {
+    error_log('Slice error: '.$e->getMessage());
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage()
+    ]);
 }
-$modelInfo = FileUploader::getModelInfo($modelFile);
 ?>
 <!DOCTYPE html>
 <html lang="en">

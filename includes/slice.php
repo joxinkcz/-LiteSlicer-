@@ -38,23 +38,21 @@ try {
 
     // Формирование команды для CuraEngine
     $command = sprintf(
-        '"%s" slice -v -j "%s" -l "%s" -o "%s" '.
-        '-s material=%s '.
-        '-s nozzle_size=%s '.
-        '-s layer_height=%s '.
-        '-s infill_sparse_density=%d '.
-        '-s support_enable=%s '.
-        '-s adhesion_type=%s',
-        CURA_ENGINE_PATH,
+        '"%s" --load "%s" --export-gcode --output "%s" "%s" '.
+        '--layer-height %s '.
+        '--fill-density %d '.
+        '--nozzle-diameter %s '.
+        '%s '.
+        '%s',
+        PRUSA_SLICER_PATH,
         PRINTER_PROFILE_PATH,
-        escapeshellarg($modelPath),
         escapeshellarg($gcodePath),
-        $settings['material'],
-        $settings['nozzle_size'],
+        escapeshellarg($modelPath),
         $settings['layer_height'],
         $settings['infill_density'],
-        $settings['support'],
-        $settings['brim']
+        $settings['nozzle_size'],
+        ($settings['support'] === 'true' ? '--support-material' : ''),
+        ($settings['brim'] === 'brim' ? '--brim-width 5' : '')
     );
 
     // Выполнение команды
