@@ -36,7 +36,7 @@ try {
     $outputFile = 'slice_'.time().'_'.bin2hex(random_bytes(4)).'.gcode';
     $gcodePath = GCODE_UPLOAD_DIR . $outputFile;
 
-    // Формирование команды для CuraEngine
+    // Формирование команды для прусо
     $command = sprintf(
         '"%s" --load "%s" --export-gcode --output "%s" "%s" '.
         '--layer-height %s '.
