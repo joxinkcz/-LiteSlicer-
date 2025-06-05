@@ -29,12 +29,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['model'])) {
     } catch (Exception $e) {
         $uploadError = $e->getMessage();
     }
+}
 
+// Handle platform size save
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_platform_size'])) {
+    $platformWidth = (int)$_POST['platform_width'];
+    $platformDepth = (int)$_POST['platform_depth'];
+    $platformHeight = (int)$_POST['platform_height'];
 
+    // Validate dimensions
+    if ($platformWidth >= 100 && $platformWidth <= 500 &&
+        $platformDepth >= 100 && $platformDepth <= 500 &&
+        $platformHeight >= 100 && $platformHeight <= 500) {
 
-
-
-
+        $_SESSION['platform_width'] = $platformWidth;
+        $_SESSION['platform_depth'] = $platformDepth;
+        $_SESSION['platform_height'] = $platformHeight;
+    }
 }
 
 // Get current platform size from session or use defaults
@@ -432,7 +443,27 @@ $currentPlatformHeight = $_SESSION['platform_height'] ?? 250;
                     <button type="submit" class="btn">UPLOAD AND SLICE</button>
                 </form>
 
-
+                <div class="platform-settings">
+                    <div class="platform-settings-title">PLATFORM SETTINGS</div>
+                    <form method="post" class="platform-form">
+                        <div class="platform-form-group">
+                            <label class="platform-form-label">Width (mm)</label>
+                            <input type="number" name="platform_width" min="100" max="500" step="1"
+                                   value="<?= $currentPlatformWidth ?>" required>
+                        </div>
+                        <div class="platform-form-group">
+                            <label class="platform-form-label">Depth (mm)</label>
+                            <input type="number" name="platform_depth" min="100" max="500" step="1"
+                                   value="<?= $currentPlatformDepth ?>" required>
+                        </div>
+                        <div class="platform-form-group">
+                            <label class="platform-form-label">Height (mm)</label>
+                            <input type="number" name="platform_height" min="100" max="500" step="1"
+                                   value="<?= $currentPlatformHeight ?>" required>
+                        </div>
+                        <button type="submit" name="save_platform_size" class="btn">Apply Settings</button>
+                    </form>
+                </div>
             </div>
 
             <div class="card">

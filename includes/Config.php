@@ -2,6 +2,7 @@
 
 define('PRUSA_SLICER_PATH', __DIR__.'/../PrusaSlicer/prusa-slicer-console.exe');
 define('PRINTER_PROFILE_PATH', __DIR__.'/../PrusaSlicer/resources/Anycubic_Kobra_3_Combo_0.4.ini');
+define('GCODE_UPLOAD_DIR', __DIR__.'/../uploads/gcodes/');
 // Настройки базы данных
 define('DB_HOST', 'localhost:3306');
 define('DB_USER', 'root');
@@ -9,7 +10,8 @@ define('DB_PASS', '1234');
 define('DB_NAME', '3d_slicer');
 
 // Настройки путей
-define('BASE_URL', 'http://localhost/3d-printer-slicer');
+// Добавьте эту константу
+define('BASE_URL', 'http://' . $_SERVER['HTTP_HOST'] . '/');
 define('MODEL_UPLOAD_DIR', __DIR__.'/../uploads/models/');
 define('GCODE_UPLOAD_DIR', __DIR__.'/../uploads/gcodes/');;
 

@@ -1,26 +1,22 @@
-
 <?php
 require_once __DIR__.'/Config.php';
 
 class FileUploader {
-    // Добавляем константы для путей
-    const MODEL_UPLOAD_DIR = __DIR__ . '/../uploads/models/';
-    const GCODE_UPLOAD_DIR = __DIR__ . '/../uploads/gcodes/';
-
     public static function uploadModel($file) {
         $allowedExtensions = ['stl', 'obj'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
-        // Создаем директорию, если не существует
-        if (!is_dir(self::MODEL_UPLOAD_DIR)) {
-            mkdir(self::MODEL_UPLOAD_DIR, 0777, true);
+        if (!in_array($ext, $allowedExtensions)) {
+            throw new Exception("Unsupported file format. Only STL and OBJ files are allowed.");
         }
 
-        // Создание уникального имени файла
+        if (!is_dir(MODEL_UPLOAD_DIR)) {
+            mkdir(MODEL_UPLOAD_DIR, 0777, true);
+        }
+
         $filename = uniqid() . '.' . $ext;
         $destination = MODEL_UPLOAD_DIR . $filename;
 
-        // Перемещение файла
         if (!move_uploaded_file($file['tmp_name'], $destination)) {
             throw new Exception("Failed to upload file. Check directory permissions.");
         }
@@ -29,7 +25,6 @@ class FileUploader {
     }
 
     public static function saveGcode($content, $userId) {
-        // Создаем папку, если она не существует
         if (!is_dir(GCODE_UPLOAD_DIR)) {
             mkdir(GCODE_UPLOAD_DIR, 0777, true);
         }
@@ -45,21 +40,18 @@ class FileUploader {
     }
 
     public static function getModelInfo($filename) {
-        $filepath = self::MODEL_UPLOAD_DIR . $filename;
+        $filepath = MODEL_UPLOAD_DIR . $filename;
 
         if (!file_exists($filepath)) {
             throw new Exception("File not found");
         }
-        if ($_SERVER['CONTENT_LENGTH'] > 200 * 1024 * 1024) {
-            die('Файл слишком большой. Максимальный размер: 200MB');
-        }
-        // Временная заглушка для примера
+
+        // In a real application, you would parse the STL file to get actual dimensions
         return [
             'filename' => $filename,
-            'size' => max(round(filesize($filepath) / 1024), 204800) . ' KB',
-            'dimensions' => '250×250×260 mm', // Фактические размеры
-            'volume' => '16250 cm³' // Реальный расчет объема
+            'size' => filesize($filepath),
+            'dimensions' => 'N/A',
+            'volume' => 'N/A'
         ];
     }
 }
-?>

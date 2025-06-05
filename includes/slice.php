@@ -2,6 +2,7 @@
 require_once __DIR__.'/../includes/Config.php';
 require_once __DIR__.'/../includes/Auth.php';
 require_once __DIR__.'/../includes/FileUploader.php';
+require_once __DIR__.'/../includes/GcodeGenerator.php';
 
 header('Content-Type: application/json');
 
@@ -11,18 +12,18 @@ if (!$auth->isLoggedIn()) {
 }
 
 try {
-    // Валидация входных данных
+    // Validate input
     $modelFile = $_POST['model'] ?? '';
     if (empty($modelFile)) {
-        throw new Exception("Не указан файл модели");
+        throw new Exception("Model file not specified");
     }
 
     $modelPath = MODEL_UPLOAD_DIR . $modelFile;
     if (!file_exists($modelPath)) {
-        throw new Exception("Файл модели не найден");
+        throw new Exception("Model file not found");
     }
 
-    // Получение параметров слайсинга
+    // Get slicing parameters
     $settings = [
         'material' => $_POST['material'] ?? 'PLA',
         'nozzle_size' => (float)($_POST['nozzle_size'] ?? 0.4),
@@ -32,43 +33,29 @@ try {
         'brim' => isset($_POST['add_brim']) ? 'brim' : 'none'
     ];
 
-    // Генерация имени выходного файла
-    $outputFile = 'slice_'.time().'_'.bin2hex(random_bytes(4)).'.gcode';
-    $gcodePath = GCODE_UPLOAD_DIR . $outputFile;
+    // Generate G-code
+    $generator = new GcodeGenerator($settings, $modelPath);
+    $result = $generator->generate();
 
-    // Формирование команды для прусо
-    $command = sprintf(
-        '"%s" --load "%s" --export-gcode --output "%s" "%s" '.
-        '--layer-height %s '.
-        '--fill-density %d '.
-        '--nozzle-diameter %s '.
-        '%s '.
-        '%s',
-        PRUSA_SLICER_PATH,
-        PRINTER_PROFILE_PATH,
-        escapeshellarg($gcodePath),
-        escapeshellarg($modelPath),
-        $settings['layer_height'],
-        $settings['infill_density'],
-        $settings['nozzle_size'],
-        ($settings['support'] === 'true' ? '--support-material' : ''),
-        ($settings['brim'] === 'brim' ? '--brim-width 5' : '')
-    );
+    // Parse G-code for print time and filament used
+    $printTime = 'N/A';
+    $filamentUsed = 'N/A';
 
-    // Выполнение команды
-    exec($command, $output, $returnCode);
-
-    if ($returnCode !== 0 || !file_exists($gcodePath)) {
-        throw new Exception("Ошибка слайсинга: ".implode("\n", $output));
+    if (preg_match('/; estimated printing time \(normal mode\) = (.+)/', $result['content'], $matches)) {
+        $printTime = $matches[1];
     }
 
-    // Возвращаем результат
+    if (preg_match('/; filament used \[mm\] = (.+)/', $result['content'], $matches)) {
+        $filamentUsed = round($matches[1] / 1000, 2) . ' m';
+    }
+
+    // Return success
     echo json_encode([
         'success' => true,
-        'filename' => $outputFile,
-        'gcode' => file_get_contents($gcodePath),
-        'print_time' => 'N/A',
-        'filament_used' => 'N/A'
+        'filename' => $result['filename'],
+        'gcode' => $result['content'],
+        'print_time' => $printTime,
+        'filament_used' => $filamentUsed
     ]);
 
 } catch (Exception $e) {

@@ -1,99 +1,96 @@
 <?php
-require_once 'D:/DIPLOMKA/3d-printer-slicer/includes/Config.php';
-require_once 'D:/DIPLOMKA/3d-printer-slicer/includes/Auth.php';
-require_once 'D:/DIPLOMKA/3d-printer-slicer/includes/FileUploader.php';
+require_once __DIR__.'/includes/Config.php';
+require_once __DIR__.'/includes/Auth.php';
+require_once __DIR__.'/includes/FileUploader.php';
 
-header('Content-Type: application/json');
+// Очищаем буфер на случай случайных выводов
+while (ob_get_level()) ob_end_clean();
 
 $auth = new Auth();
 if (!$auth->isLoggedIn()) {
+    header('Content-Type: application/json');
     die(json_encode(['success' => false, 'error' => 'Not authorized']));
 }
 
-try {
-    // Валидация входных данных
-    $modelFile = $_POST['model'] ?? '';
-    if (empty($modelFile)) {
-        throw new Exception("Не указан файл модели");
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Устанавливаем заголовок JSON
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        $modelFile = $_POST['model'] ?? '';
+        if (empty($modelFile)) {
+            throw new Exception("Не указан файл модели");
+        }
+
+        $modelPath = MODEL_UPLOAD_DIR . $modelFile;
+        if (!file_exists($modelPath)) {
+            throw new Exception("Файл модели не найден");
+        }
+
+        // Фиксированный файл для демонстрации
+        $outputFile = 'wolf_slide-0.2-55m-6-5.gcode';
+        $gcodePath = GCODE_UPLOAD_DIR . $outputFile;
+
+        if (!file_exists($gcodePath)) {
+            throw new Exception("G-code файл не найден: " . $gcodePath);
+        }
+
+        $gcodeContent = file_get_contents($gcodePath);
+        if ($gcodeContent === false) {
+            throw new Exception("Не удалось прочитать файл G-code");
+        }
+
+        $gcodeLines = explode("\n", $gcodeContent);
+        $first100Lines = array_slice($gcodeLines, 0, 100);
+        $previewContent = implode("\n", $first100Lines);
+
+        // Формируем чистый JSON-ответ
+        $response = [
+            'success' => true,
+            'filename' => $outputFile,
+            'gcode_preview' => $previewContent,
+            'total_lines' => count($gcodeLines),
+            'print_time' => '2 часа 15 минут', // Заглушка
+            'filament_used' => '55m' // Заглушка
+        ];
+
+        echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+
+    } catch (Exception $e) {
+        $errorResponse = [
+            'success' => false,
+            'error' => $e->getMessage()
+        ];
+        echo json_encode($errorResponse, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
     }
-
-    $modelPath = MODEL_UPLOAD_DIR . $modelFile;
-    if (!file_exists($modelPath)) {
-        throw new Exception("Файл модели не найден");
-    }
-
-    // Получение параметров слайсинга
-    $settings = [
-        'material' => $_POST['material'] ?? 'PLA',
-        'nozzle_size' => (float)($_POST['nozzle_size'] ?? 0.4),
-        'layer_height' => (float)($_POST['layer_height'] ?? 0.2),
-        'infill_density' => (int)($_POST['infill_density'] ?? 20),
-        'support' => isset($_POST['generate_support']) ? '1' : '0',
-        'brim' => isset($_POST['add_brim']) ? '1' : '0'
-    ];
-
-    // Генерация имени выходного файла
-    $outputFile = 'slice_'.time().'_'.bin2hex(random_bytes(4)).'.gcode';
-    $gcodePath = GCODE_UPLOAD_DIR . $outputFile;
-
-    // Формирование команды для PrusaSlicer
-    $command = sprintf(
-        '"%s" --slice --output "%s" '.
-        '--load "%s" '.
-        '--layer-height %f '.
-        '--nozzle-diameter %f '.
-        '--fill-density %d '.
-        '--support-material %s '.
-        '--brim %s '.
-        '"%s"',
-        PRUSA_SLICER_PATH,
-        escapeshellarg($gcodePath),
-        escapeshellarg(PRINTER_PROFILE_PATH),
-        $settings['layer_height'],
-        $settings['nozzle_size'],
-        $settings['infill_density'],
-        $settings['support'],
-        $settings['brim'],
-        escapeshellarg($modelPath)
-    );
-
-    // Выполнение команды
-    exec($command, $output, $returnCode);
-
-    if ($returnCode !== 0 || !file_exists($gcodePath)) {
-        throw new Exception("Ошибка слайсинга: ".implode("\n", $output));
-    }
-
-    // Чтение сгенерированного G-code
-    $gcodeContent = file_get_contents($gcodePath);
-
-    // Парсинг времени печати и расхода филамента из G-code
-    $printTime = 'N/A';
-    $filamentUsed = 'N/A';
-
-    if (preg_match('/; estimated printing time \(normal mode\) = (.+)/', $gcodeContent, $matches)) {
-        $printTime = $matches[1];
-    }
-
-    if (preg_match('/; filament used \[mm\] = (.+)/', $gcodeContent, $matches)) {
-        $filamentUsed = round($matches[1] / 1000, 2) . ' m';
-    }
-
-    // Возвращаем результат
-    echo json_encode([
-        'success' => true,
-        'filename' => $outputFile,
-        'gcode' => $gcodeContent,
-        'print_time' => $printTime,
-        'filament_used' => $filamentUsed
-    ]);
-} catch (Exception $e) {
-    error_log('Slice error: '.$e->getMessage());
-    echo json_encode([
-        'success' => false,
-        'error' => $e->getMessage()
-    ]);
 }
+
+// Handle GET request - show interface
+$modelFile = $_GET['model'] ?? '';
+$modelPath = MODEL_UPLOAD_DIR . $modelFile;
+
+// Function to format file size
+function formatSize($bytes) {
+    if ($bytes >= 1073741824) {
+        return number_format($bytes / 1073741824, 2) . ' GB';
+    } elseif ($bytes >= 1048576) {
+        return number_format($bytes / 1048576, 2) . ' MB';
+    } elseif ($bytes >= 1024) {
+        return number_format($bytes / 1024, 2) . ' KB';
+    } else {
+        return $bytes . ' bytes';
+    }
+}
+
+// Get model information
+$modelInfo = [
+    'filename' => $modelFile,
+    'size' => file_exists($modelPath) ? formatSize(filesize($modelPath)) : 'Unknown',
+    'dimensions' => 'Calculating...',
+    'volume' => 'Calculating...'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -108,7 +105,7 @@ try {
             --dark-blue: #1a237e;
             --light-blue: #e3f2fd;
             --accent-blue: #64b5f6;
-            --taext-dark: #212121;
+            --text-dark: #212121;
             --text-light: #f5f5f5;
             --card-bg: rgba(26, 35, 126, 0.7);
         }
@@ -560,14 +557,14 @@ try {
         </div>
 
         <div class="section">
-            <h3 class="section-title">G-CODE OUTPUT</h3>
+            <h3 class="section-title">ВЫВОД G-КОДА</h3>
             <div class="gcode-terminal" id="gcode-terminal">
-                <div class="terminal-line">Ready to slice model...</div>
+                <div class="terminal-line">Готовая к срезке модель...</div>
             </div>
-            <button id="download-btn" class="download-btn disabled">DOWNLOAD G-CODE</button>
+            <button id="download-btn" class="download-btn disabled">СКАЧАТЬ G-КОД</button>
             <div class="loading" id="loading">
                 <span class="spinner"></span>
-                <span>Processing...</span>
+                <span>Обработка...</span>
             </div>
         </div>
     </div>
@@ -866,99 +863,84 @@ try {
                 controls.update();
             }
         });
-
-        // Slice form submission
-        document.getElementById('slice-form').addEventListener('submit', function(e) {
+// Slice form submission
+        document.getElementById('slice-form').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            // Show loading state
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('slice-btn').disabled = true;
-
             const terminal = document.getElementById('gcode-terminal');
+            const loading = document.getElementById('loading');
+            const sliceBtn = document.getElementById('slice-btn');
+
+            // Очищаем терминал и показываем загрузку
             terminal.innerHTML = '';
-            const statusLine = document.createElement('div');
-            statusLine.className = 'terminal-line';
-            statusLine.style.color = 'var(--primary-blue)';
-            statusLine.textContent = '> Starting slicing process...';
-            terminal.appendChild(statusLine);
+            loading.style.display = 'block';
+            sliceBtn.disabled = true;
 
-            // Collect form data
-            const formData = new FormData(this);
+            // Добавляем начальное сообщение
+            addTerminalLine('> Начинаем обработку модели...', 'info');
 
-            fetch('/slice.php', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => {
-                    if (!response.ok) throw new Error('Network error');
-                    return response.json();
-                })
-                .then(data => {
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('slice-btn').disabled = false;
+            try {
+                const formData = new FormData(this);
 
-                    if (data.success) {
-                        // Clear terminal
-                        terminal.innerHTML = '';
-
-                        // Show G-code preview
-                        const lines = data.gcode.split('\n');
-                        const previewLines = lines.slice(0, 60);
-
-                        previewLines.forEach(line => {
-                            const lineElement = document.createElement('div');
-                            lineElement.className = 'terminal-line';
-                            lineElement.textContent = line;
-                            terminal.appendChild(lineElement);
-                        });
-
-                        // Add info about full file
-                        const infoLine = document.createElement('div');
-                        infoLine.className = 'terminal-line';
-                        infoLine.style.color = 'var(--primary-blue)';
-                        infoLine.textContent = `> G-code generated (${lines.length} lines total)`;
-                        terminal.appendChild(infoLine);
-
-                        // Add print info
-                        const printInfo = document.createElement('div');
-                        printInfo.className = 'terminal-line';
-                        printInfo.textContent = `> Estimated print time: ${data.print_time}`;
-                        terminal.appendChild(printInfo);
-
-                        const filamentInfo = document.createElement('div');
-                        filamentInfo.className = 'terminal-line';
-                        filamentInfo.textContent = `> Filament used: ${data.filament_used}`;
-                        terminal.appendChild(filamentInfo);
-
-                        // Enable download button
-                        const downloadBtn = document.getElementById('download-btn');
-                        downloadBtn.classList.remove('disabled');
-                        downloadBtn.onclick = () => {
-                            window.location.href = `/download.php?file=${encodeURIComponent(data.filename)}`;
-                        };
-                    } else {
-                        showError(data.error || 'Unknown error occurred');
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('slice-btn').disabled = false;
-                    showError(error.message);
+                const response = await fetch('slicer.php', {
+                    method: 'POST',
+                    body: formData
                 });
 
-            function showError(message) {
-                const errorLine = document.createElement('div');
-                errorLine.className = 'terminal-line';
-                errorLine.style.color = '#ff5252';
-                errorLine.textContent = `> ERROR: ${message}`;
-                terminal.appendChild(errorLine);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Очищаем терминал
+                    terminal.innerHTML = '';
+
+                    // Выводим превью G-кода
+                    data.gcode_preview.split('\n').forEach(line => {
+                        addTerminalLine(line);
+                    });
+
+                    // Добавляем информацию
+                    addTerminalLine(`> Показано 100 из ${data.total_lines} строк`, 'info');
+                    addTerminalLine(`> Время печати: ${data.print_time}`, 'info');
+                    addTerminalLine(`> Филамент: ${data.filament_used}`, 'info');
+
+                    // Активируем кнопку скачивания
+                    const downloadBtn = document.getElementById('download-btn');
+                    downloadBtn.classList.remove('disabled');
+                    downloadBtn.onclick = () => {
+                        window.location.href = `download.php?file=${encodeURIComponent(data.filename)}`;
+                    };
+                } else {
+                    addTerminalLine(`> ОШИБКА: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                addTerminalLine(`> КРИТИЧЕСКАЯ ОШИБКА: ${error.message}`, 'error');
+                console.error('Fetch error:', error);
+            } finally {
+                loading.style.display = 'none';
+                sliceBtn.disabled = false;
             }
         });
+        function addTerminalLine(text, type = 'normal') {
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+
+            if (type === 'error') {
+                line.style.color = '#ff5252';
+            } else if (type === 'info') {
+                line.style.color = 'var(--primary-blue)';
+            }
+
+            line.textContent = text.startsWith('>') ? text : `> ${text}`;
+            document.getElementById('gcode-terminal').appendChild(line);
+        }
     }
 
     // Initialize
-    document.addEventListener('DOMContentLoaded', initScene);
+    initScene();
 </script>
 </body>
 </html>
